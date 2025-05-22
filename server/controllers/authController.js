@@ -1,3 +1,5 @@
+const bcrypt = require('bcrypt');
+
 class AuthController {
     constructor(User) {
         this.User = User;
@@ -12,12 +14,21 @@ class AuthController {
                 return res.status(400).json({ message: 'User already exists' });
             }
 
-            const newUser = new this.User({ username, password });
+            // Hash the password before saving
+            const salt = await bcrypt.genSalt(10);
+            const hashedPassword = await bcrypt.hash(password, salt);
+
+            const newUser = new this.User({
+                username,
+                password: hashedPassword
+            });
             await newUser.save();
 
             const token = this.generateToken(newUser._id);
-            res.status(201).json({ token });
+            res.cookie('token', token).status(201).json({ token });
+
         } catch (error) {
+            console.error(error);
             res.status(500).json({ message: 'Server error' });
         }
     }
@@ -27,13 +38,22 @@ class AuthController {
 
         try {
             const user = await this.User.findOne({ username });
-            if (!user || !(await user.comparePassword(password))) {
+            if (!user) {
+                return res.status(401).json({ message: 'Invalid credentials' });
+            }
+
+            // Compare the provided password with stored hash
+            const isMatch = await bcrypt.compare(password, user.password);
+            if (!isMatch) {
                 return res.status(401).json({ message: 'Invalid credentials' });
             }
 
             const token = this.generateToken(user._id);
-            res.status(200).json({ token });
+            // Replace both occurrences (in register and login methods)
+            res.cookie('token', token).status(201).json({ token });
+
         } catch (error) {
+            console.error(error);
             res.status(500).json({ message: 'Server error' });
         }
     }
