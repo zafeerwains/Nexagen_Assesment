@@ -1,9 +1,10 @@
 import React from 'react'
+import  Routes  from './pages/routes'
 
 export default function App() {
   return (
     <>
-      <div className='text-center text-5xl'>Notes App Manager</div>
+      <Routes />
     </>
   )
 }
