@@ -4,13 +4,14 @@ class NoteController {
     }
 
     async createNote(req, res) {
-        const { title, content } = req.body;
+        const { title, content, category } = req.body;
         try {
             const newNote = new this.Note({
                 title,
                 content,
                 createdAt: new Date(),
-                user: req.user.id // Assuming user ID is attached to req by auth middleware
+                category,
+                userId: req.user.id // Assuming user ID is attached to req by auth middleware
             });
             await newNote.save();
             res.status(201).json(newNote);
@@ -21,20 +22,30 @@ class NoteController {
 
     async getNotes(req, res) {
         try {
-            const notes = await this.Note.find({ user: req.user.id });
+            const notes = await this.Note.find({ userId: req.user.id });
             res.status(200).json(notes);
         } catch (error) {
             res.status(500).json({ message: 'Error fetching notes', error });
         }
     }
 
+    async getNoteById(req, res) {
+        try {
+            const notes = await this.Note.find({ _id: req.note.id });
+            res.status(200).json(notes);
+        } catch (error) {
+            res.status(500).json({ message: 'Error fetching notes', error });
+        }
+    }
+
+
     async updateNote(req, res) {
         const { id } = req.params;
-        const { title, content } = req.body;
+        const { title, content, category } = req.body;
         try {
             const updatedNote = await this.Note.findByIdAndUpdate(
-                id,
-                { title, content },
+                { "_id": id },
+                { title, content, category },
                 { new: true }
             );
             if (!updatedNote) {
@@ -49,7 +60,7 @@ class NoteController {
     async deleteNote(req, res) {
         const { id } = req.params;
         try {
-            const deletedNote = await this.Note.findByIdAndDelete(id);
+            const deletedNote = await this.Note.findByIdAndDelete({ "_id": id });
             if (!deletedNote) {
                 return res.status(404).json({ message: 'Note not found' });
             }
